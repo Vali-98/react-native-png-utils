@@ -1,0 +1,23 @@
+{
+  "$schema": "https://nitro.margelo.com/nitro.schema.json",
+  "cxxNamespace": [
+    "pngutils"
+  ],
+  "ios": {
+    "iosModuleName": "PngUtils"
+  },
+  "android": {
+    "androidNamespace": [
+      "pngutils"
+    ],
+    "androidCxxLibName": "PngUtils"
+  },
+  "autolinking": {
+    "PngUtils": {
+      "cpp": "HybridPngUtils"
+    }
+  },
+  "ignorePaths": [
+    "**/node_modules"
+  ]
+}
