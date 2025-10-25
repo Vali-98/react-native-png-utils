@@ -1,5 +1,5 @@
 import { type HybridObject } from 'react-native-nitro-modules'
 
-export interface PngUtils extends HybridObject<{ ios: 'c++', android: 'c++' }> {
-  sum(num1: number, num2: number): number
+export interface PngUtils extends HybridObject<{ ios: 'c++'; android: 'c++' }> {
+  getPngChunk(pngData: string): string
 }

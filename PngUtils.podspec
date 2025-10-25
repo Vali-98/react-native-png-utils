@@ -21,6 +21,10 @@ Pod::Spec.new do |s|
     # Implementation (C++ objects)
     "cpp/**/*.{hpp,cpp}",
   ]
+  s.pod_target_xcconfig = {
+    # O3 optimizations make stuff fast
+    'OTHER_CPLUSPLUSFLAGS' => '$(inherited) -O3', 
+  }
 
   load 'nitrogen/generated/ios/PngUtils+autolinking.rb'
   add_nitrogen_files(s)
