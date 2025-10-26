@@ -10,14 +10,22 @@ add_compile_options(-DRN_SERIALIZABLE_STATE=1 -O3)
 
 # Define C++ library and add all sources
 add_library(${PACKAGE_NAME} SHARED 
-	src/main/cpp/cpp-adapter.cpp
-	../cpp/HybridPngUtils.cpp
-	../cpp/HybridPngUtils.hpp
-        
+    src/main/cpp/cpp-adapter.cpp
+    ../cpp/turbob64/turbob64c.c
+    ../cpp/turbob64/turbob64d.c
+    ../cpp/HybridPngUtils.hpp
+    ../cpp/HybridPngUtils.cpp
 )
+
+# Conditional NEON setup (only for arm64-v8a)
+if(ANDROID_ABI STREQUAL "arm64-v8a")
+    target_compile_definitions(${PACKAGE_NAME} PRIVATE PNGUTIL_ENABLE_NEON)
+    target_sources(${PACKAGE_NAME} PRIVATE ../cpp/turbob64/turbob64v128.c)
+endif()
 
 # Add Nitrogen specs :)
 include(${CMAKE_SOURCE_DIR}/../nitrogen/generated/android/PngUtils+autolinking.cmake)
+
 
 # Set up local includes
 include_directories(
@@ -26,10 +34,10 @@ include_directories(
 )
 
 find_library(LOG_LIB log)
-
-# Link all libraries together
-target_link_libraries(
+find_library(Z_LIB z)
+target_link_libraries(  
         ${PACKAGE_NAME}
         ${LOG_LIB}
+        ${Z_LIB}
         android                                   # <-- Android core
 )

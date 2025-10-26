@@ -48,7 +48,8 @@ namespace margelo::nitro::pngutils {
 
     public:
       // Methods
-      virtual std::string getPngChunk(const std::string& pngData) = 0;
+      virtual std::string extractPngChunk(const std::string& pngData) = 0;
+      virtual std::string replacePngChunk(const std::string& pngData, const std::string& newData) = 0;
 
     protected:
       // Hybrid Setup

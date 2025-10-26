@@ -1,5 +1,8 @@
 import { keepLocalCopy, pick } from '@react-native-documents/picker'
-import { getPngChunkText } from '@vali98/react-native-png-utils'
+import {
+  extractPngTextChunk,
+  replacePngTextChunk,
+} from '@vali98/react-native-png-utils'
 import React, { useState } from 'react'
 import { ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native'
 import { FileSystem } from 'react-native-file-access'
@@ -23,7 +26,8 @@ function App(): React.JSX.Element {
       'base64'
     )
     const now = performance.now()
-    const pngtext = getPngChunkText(fileData)
+    //let old = replacePngTextChunk(fileData, JSON.stringify({ test: 'TEST' }))
+    const pngtext = extractPngTextChunk(fileData)
     const after = performance.now() - now
     setTime(after)
     try {

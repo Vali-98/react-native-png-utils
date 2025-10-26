@@ -14,7 +14,8 @@ namespace margelo::nitro::pngutils {
     HybridObject::loadHybridMethods();
     // load custom methods/properties
     registerHybrids(this, [](Prototype& prototype) {
-      prototype.registerHybridMethod("getPngChunk", &HybridPngUtilsSpec::getPngChunk);
+      prototype.registerHybridMethod("extractPngChunk", &HybridPngUtilsSpec::extractPngChunk);
+      prototype.registerHybridMethod("replacePngChunk", &HybridPngUtilsSpec::replacePngChunk);
     });
   }
 

@@ -19,11 +19,12 @@ Pod::Spec.new do |s|
     # Autolinking/Registration (Objective-C++)
     "ios/**/*.{m,mm}",
     # Implementation (C++ objects)
-    "cpp/**/*.{hpp,cpp}",
+    "cpp/**/*.{hpp,cpp,c,h}",
   ]
   s.pod_target_xcconfig = {
     # O3 optimizations make stuff fast
-    'OTHER_CPLUSPLUSFLAGS' => '$(inherited) -O3', 
+    'OTHER_CPLUSPLUSFLAGS' => '$(inherited) -O3 -DPNGUTIL_ENABLE_NEON', 
+    'OTHER_CFLAGS' => '$(inherited) -O3 -DPNGUTIL_ENABLE_NEON',
   }
 
   load 'nitrogen/generated/ios/PngUtils+autolinking.rb'
