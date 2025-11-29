@@ -77,6 +77,38 @@ namespace margelo::nitro::pngutils
                uint32_t(p[3]);
     }
 
+    static inline bool isValidUtf8(const uint8_t *data, size_t len)
+    {
+        size_t i = 0;
+        while (i < len) {
+            uint8_t c = data[i];
+            if (c <= 0x7F) {
+                // 1-byte
+                ++i;
+            } else if ((c & 0xE0) == 0xC0) {
+                // 2-byte
+                if (i + 1 >= len) return false;
+                uint8_t c1 = data[i+1];
+                if ((c1 & 0xC0) != 0x80) return false;
+                // overlong checks (optional) omitted for brevity
+                i += 2;
+            } else if ((c & 0xF0) == 0xE0) {
+                // 3-byte
+                if (i + 2 >= len) return false;
+                if (((data[i+1] & 0xC0) != 0x80) || ((data[i+2] & 0xC0) != 0x80)) return false;
+                i += 3;
+            } else if ((c & 0xF8) == 0xF0) {
+                // 4-byte
+                if (i + 3 >= len) return false;
+                if (((data[i+1] & 0xC0) != 0x80) || ((data[i+2] & 0xC0) != 0x80) || ((data[i+3] & 0xC0) != 0x80)) return false;
+                i += 4;
+            } else {
+                return false;
+            }
+        }
+        return true;
+    }
+
     std::string HybridPngUtils::extractPngChunk(const std::string &base64Png)
     {
         static thread_local std::vector<uint8_t> bytes;
@@ -125,10 +157,11 @@ namespace margelo::nitro::pngutils
 
                 if (!base64DecodeToBytes(valueSv, tmp))
                     throw std::runtime_error("Failed to decode tEXt chunk value");
-
+            
+                while (!tmp.empty() && !isValidUtf8(tmp.data(), tmp.size()))
+                    tmp.pop_back();
+            
                 std::string result(reinterpret_cast<const char *>(tmp.data()), tmp.size());
-                while (!result.empty() && (unsigned char)result.back() <= 0x1F)
-                    result.pop_back();
                 return result;
             }
         }
