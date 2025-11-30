@@ -151,9 +151,7 @@ namespace margelo::nitro::pngutils
                     throw std::runtime_error("Malformed tEXt chunk: missing null separator");
 
                 std::string_view valueSv = chunkSv.substr(nullPos + 1);
-
                 std::vector<uint8_t> tmp;
-                tmp.reserve((valueSv.size() / 4) * 3 + 4);
 
                 if (!base64DecodeToBytes(valueSv, tmp))
                     throw std::runtime_error("Failed to decode tEXt chunk value");
