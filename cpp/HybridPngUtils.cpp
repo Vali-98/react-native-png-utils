@@ -6,287 +6,368 @@
 #include <cstdint>
 #include <cstring>
 #include <string_view>
+#include <limits>
 #include <zlib.h>
 
-namespace margelo::nitro::pngutils
-{
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
-    extern "C"
-    {
-        size_t tb64xdec(const unsigned char *in, size_t inlen, unsigned char *out);
-        size_t tb64xenc(const unsigned char *in, size_t inlen, unsigned char *out);
-        size_t tb64v128dec(const unsigned char *in, size_t inlen, unsigned char *out);
-        size_t tb64v128enc(const unsigned char *in, size_t inlen, unsigned char *out);
-    }
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
 
-    static inline bool base64DecodeToBytes(std::string_view in, std::vector<uint8_t> &out)
-    {
+namespace margelo::nitro::pngutils {
+
+// ============================================================
+// Base64 (reuse your existing safe implementations if desired)
+// ============================================================
+
+extern "C" {
+    size_t tb64xdec(const unsigned char *in, size_t inlen, unsigned char *out);
+    size_t tb64xenc(const unsigned char *in, size_t inlen, unsigned char *out);
+}
+
+static bool base64DecodeToBytes(std::string_view in, std::vector<uint8_t>& out) {
+    out.clear();
+    if (in.empty()) return true;
+
+    size_t padded = (in.size() + 3) & ~3;
+    size_t maxLen = (padded / 4) * 3 + 1;
+
+    if (maxLen > 100 * 1024 * 1024)
+        return false;
+
+    out.resize(maxLen);
+
+    size_t len = tb64xdec(
+        reinterpret_cast<const unsigned char*>(in.data()),
+        in.size(),
+        out.data());
+
+    if (!len || len > maxLen)
+        return false;
+
+    out.resize(len);
+    return true;
+}
+
+static bool base64EncodeFromBytes(const std::vector<uint8_t>& in, std::string& out) {
+    if (in.empty()) {
         out.clear();
-        if (in.empty())
-            return true;
-        size_t outLen;
-        out.resize((in.size() / 4) * 3 + 4);
-#if defined(PNGUTIL_ENABLE_NEON)
-        outLen = tb64v128dec(
-            reinterpret_cast<const unsigned char *>(in.data()),
-            in.size(),
-            out.data());
-#else
-        // Fallback scalar path
-        outLen = tb64xdec(
-            reinterpret_cast<const unsigned char *>(in.data()),
-            in.size(),
-            out.data());
-#endif
-        if (!outLen)
-            return false;
-
-        out.resize(outLen);
         return true;
     }
 
-    static inline bool base64EncodeFromBytes(const std::vector<uint8_t> &in, std::string &out)
-    {
-        if (in.empty())
-        {
-            out.clear();
-            return true;
+    size_t maxLen = (in.size() * 4 / 3) + 4;
+    if (maxLen > 100 * 1024 * 1024)
+        return false;
+
+    std::vector<uint8_t> tmp(maxLen);
+
+    size_t len = tb64xenc(
+        in.data(),
+        in.size(),
+        tmp.data());
+
+    if (!len || len > maxLen)
+        return false;
+
+    out.assign(reinterpret_cast<char*>(tmp.data()), len);
+    return true;
+}
+
+// ============================================================
+// Image Decode (ANY FORMAT)
+// ============================================================
+
+static bool decodeAnyImage(
+    const std::vector<uint8_t>& input,
+    int& width,
+    int& height,
+    std::vector<uint8_t>& rgbaOut)
+{
+    int channels;
+    unsigned char* data = stbi_load_from_memory(
+        input.data(),
+        input.size(),
+        &width,
+        &height,
+        &channels,
+        4); // force RGBA
+
+    if (!data)
+        return false;
+
+    if ((uint64_t)width * (uint64_t)height > 100000000ULL) {
+        stbi_image_free(data);
+        return false;
+    }
+
+    size_t size = (size_t)width * height * 4;
+    rgbaOut.assign(data, data + size);
+    stbi_image_free(data);
+    return true;
+}
+
+// ============================================================
+// PNG Encoding
+// ============================================================
+
+static bool encodePng(
+    const std::vector<uint8_t>& rgba,
+    int width,
+    int height,
+    std::vector<uint8_t>& pngOut)
+{
+    pngOut.clear();
+
+    auto callback = [](void* ctx, void* data, int size) {
+        auto* buffer = reinterpret_cast<std::vector<uint8_t>*>(ctx);
+        uint8_t* bytes = reinterpret_cast<uint8_t*>(data);
+        buffer->insert(buffer->end(), bytes, bytes + size);
+    };
+
+    int stride = width * 4;
+
+    return stbi_write_png_to_func(
+        callback,
+        &pngOut,
+        width,
+        height,
+        4,
+        rgba.data(),
+        stride);
+}
+
+// ============================================================
+// PNG tEXt Injection
+// ============================================================
+
+static void injectTextChunk(
+    std::vector<uint8_t>& pngBytes,
+    const std::string& text)
+{
+    static const uint8_t PNG_HEADER[8] =
+        {0x89,'P','N','G',0x0D,0x0A,0x1A,0x0A};
+
+    if (pngBytes.size() < 8 ||
+        std::memcmp(pngBytes.data(), PNG_HEADER, 8) != 0)
+        throw std::runtime_error("Invalid PNG");
+
+    const uint8_t* begin = pngBytes.data();
+    const uint8_t* end   = begin + pngBytes.size();
+    const uint8_t* p     = begin + 8;
+
+    // ---- Validate IHDR exists and is first ----
+    if (p + 8 > end)
+        throw std::runtime_error("Corrupted PNG");
+
+    uint32_t ihdrLen =
+        (p[0]<<24)|(p[1]<<16)|(p[2]<<8)|p[3];
+    p += 4;
+
+    if (p + 4 > end || std::strncmp((const char*)p,"IHDR",4)!=0)
+        throw std::runtime_error("Invalid PNG: missing IHDR");
+
+    p += 4;
+
+    if (p + ihdrLen + 4 > end)
+        throw std::runtime_error("Corrupted IHDR");
+
+    // Move pointer past IHDR data + CRC
+    p += ihdrLen + 4;
+
+    size_t insertPos = p - begin;
+
+    // ---- Remove existing tEXt chunks ----
+    std::vector<uint8_t> cleaned;
+    cleaned.insert(cleaned.end(), begin, begin + 8);
+
+    const uint8_t* scan = begin + 8;
+
+    while (scan + 8 <= end) {
+        uint32_t len =
+            (scan[0]<<24)|(scan[1]<<16)|
+            (scan[2]<<8)|scan[3];
+
+        const uint8_t* type = scan + 4;
+
+        if (scan + 8 + len + 4 > end)
+            throw std::runtime_error("Corrupted PNG");
+
+        bool isText =
+            (std::strncmp((const char*)type,"tEXt",4)==0);
+
+        if (!isText)
+            cleaned.insert(cleaned.end(),
+                           scan,
+                           scan + 8 + len + 4);
+
+        scan += 8 + len + 4;
+    }
+
+    pngBytes.swap(cleaned);
+
+    // ---- Build new tEXt chunk ----
+    const std::string keyword = "Comment";
+    std::string chunkData = keyword + '\0' + text;
+
+    uint32_t len = (uint32_t)chunkData.size();
+
+    uint32_t crc = crc32(0L, Z_NULL, 0);
+    crc = crc32(crc, (const Bytef*)"tEXt", 4);
+    crc = crc32(crc,
+                (const Bytef*)chunkData.data(),
+                chunkData.size());
+
+    std::vector<uint8_t> chunk;
+
+    chunk.push_back((len >> 24) & 0xFF);
+    chunk.push_back((len >> 16) & 0xFF);
+    chunk.push_back((len >> 8) & 0xFF);
+    chunk.push_back((len) & 0xFF);
+
+    chunk.insert(chunk.end(), {'t','E','X','t'});
+
+    chunk.insert(chunk.end(),
+                 chunkData.begin(),
+                 chunkData.end());
+
+    chunk.push_back((crc >> 24) & 0xFF);
+    chunk.push_back((crc >> 16) & 0xFF);
+    chunk.push_back((crc >> 8) & 0xFF);
+    chunk.push_back((crc) & 0xFF);
+
+    // ---- Insert after IHDR ----
+    pngBytes.insert(pngBytes.begin() + insertPos,
+                    chunk.begin(),
+                    chunk.end());
+}
+
+// ============================================================
+// PNG tEXt Extraction
+// ============================================================
+
+static std::string extractTextChunk(
+    const std::vector<uint8_t>& pngBytes)
+{
+    static const uint8_t PNG_HEADER[8] =
+        {0x89,'P','N','G',0x0D,0x0A,0x1A,0x0A};
+
+    if (pngBytes.size() < 8 ||
+        std::memcmp(pngBytes.data(), PNG_HEADER, 8) != 0)
+        return "";
+
+    const uint8_t* p = pngBytes.data() + 8;
+    const uint8_t* end = pngBytes.data() + pngBytes.size();
+
+    while (p + 12 <= end) {
+        uint32_t len =
+            (p[0]<<24)|(p[1]<<16)|(p[2]<<8)|p[3];
+        p += 4;
+
+        const char* type = (const char*)p;
+        p += 4;
+
+        if (p + len + 4 > end)
+            return "";
+
+        if (std::strncmp(type, "tEXt", 4) == 0) {
+            std::string_view data(
+                (const char*)p, len);
+
+            size_t nullPos = data.find('\0');
+            if (nullPos != std::string::npos)
+                return std::string(
+                    data.substr(nullPos + 1));
         }
 
-        std::vector<uint8_t> tmp;
-        tmp.resize((in.size() * 4 / 3) + 8);
-        size_t outLen;
-
-#if defined(PNGUTIL_ENABLE_NEON)
-        outLen = tb64v128enc(in.data(), in.size(), tmp.data());
-#else
-        outLen = tb64xenc(in.data(), in.size(), tmp.data());
-#endif
-        if (!outLen)
-            return false;
-
-        out.assign(reinterpret_cast<const char *>(tmp.data()), outLen);
-        return true;
+        p += len + 4;
     }
 
-    static inline uint32_t readUInt32BE(const uint8_t *p)
-    {
-        return (uint32_t(p[0]) << 24) |
-               (uint32_t(p[1]) << 16) |
-               (uint32_t(p[2]) << 8) |
-               uint32_t(p[3]);
+    return "";
+}
+
+// ============================================================
+// Public API — NITRO BOUNDARY
+// ============================================================
+
+std::string HybridPngUtils::extractPngChunk(
+    const std::string& base64Input,
+    const bool decodeOutput)
+{
+    std::vector<uint8_t> bytes;
+
+    if (!base64DecodeToBytes(base64Input, bytes))
+        throw std::runtime_error("Invalid image");
+
+    std::string textB64 = extractTextChunk(bytes);
+
+    if (!decodeOutput)
+        return textB64;
+
+    // ---- Decode Base64 payload to UTF-8 ----
+    std::vector<uint8_t> decoded;
+
+    if (!base64DecodeToBytes(textB64, decoded))
+        throw std::runtime_error("Corrupted text payload");
+
+    if (decoded.empty())
+        return "";
+
+    return std::string(
+        reinterpret_cast<const char*>(decoded.data()),
+        decoded.size());
+}
+
+std::string HybridPngUtils::replacePngChunk(
+    const std::string& base64Input,
+    const std::string& newData,
+    bool encodeInput)
+{
+    // ---- Decode image from base64 ----
+    std::vector<uint8_t> bytes;
+
+    if (!base64DecodeToBytes(base64Input, bytes))
+        throw std::runtime_error("Invalid image");
+
+    // ---- Decode any format to RGBA ----
+    int width, height;
+    std::vector<uint8_t> rgba;
+
+    if (!decodeAnyImage(bytes, width, height, rgba))
+        throw std::runtime_error("Unsupported image");
+
+    // ---- Always re-encode as PNG ----
+    std::vector<uint8_t> pngBytes;
+
+    if (!encodePng(rgba, width, height, pngBytes))
+        throw std::runtime_error("PNG encode failed");
+
+    // ---- Prepare payload ----
+    std::string payloadB64;
+
+    if (encodeInput) {
+        // UTF-8 → Base64
+        std::vector<uint8_t> inputBytes(
+            newData.begin(),
+            newData.end());
+
+        if (!base64EncodeFromBytes(inputBytes, payloadB64))
+            throw std::runtime_error("Base64 encode failed");
+    } else {
+        // Already base64
+        payloadB64 = newData;
     }
 
-    static inline bool isValidUtf8(const uint8_t *data, size_t len)
-    {
-        size_t i = 0;
-        while (i < len) {
-            uint8_t c = data[i];
-            if (c <= 0x7F) {
-                // 1-byte
-                ++i;
-            } else if ((c & 0xE0) == 0xC0) {
-                // 2-byte
-                if (i + 1 >= len) return false;
-                uint8_t c1 = data[i+1];
-                if ((c1 & 0xC0) != 0x80) return false;
-                // overlong checks (optional) omitted for brevity
-                i += 2;
-            } else if ((c & 0xF0) == 0xE0) {
-                // 3-byte
-                if (i + 2 >= len) return false;
-                if (((data[i+1] & 0xC0) != 0x80) || ((data[i+2] & 0xC0) != 0x80)) return false;
-                i += 3;
-            } else if ((c & 0xF8) == 0xF0) {
-                // 4-byte
-                if (i + 3 >= len) return false;
-                if (((data[i+1] & 0xC0) != 0x80) || ((data[i+2] & 0xC0) != 0x80) || ((data[i+3] & 0xC0) != 0x80)) return false;
-                i += 4;
-            } else {
-                return false;
-            }
-        }
-        return true;
-    }
+    // ---- Inject chunk ----
+    injectTextChunk(pngBytes, payloadB64);
 
-    std::string HybridPngUtils::extractPngChunk(const std::string &base64Png)
-    {
-        static thread_local std::vector<uint8_t> bytes;
-        bytes.clear();
+    // ---- Re-encode PNG as base64 ----
+    std::string outB64;
 
-        if (!base64DecodeToBytes(base64Png, bytes))
-            throw std::runtime_error("Invalid Base64 PNG data");
+    if (!base64EncodeFromBytes(pngBytes, outB64))
+        throw std::runtime_error("Base64 encode failed");
 
-        // Validate PNG header
-        if (bytes.size() < 8)
-            throw std::runtime_error("Invalid PNG: too short");
+    return outB64;
+}
 
-        static const uint8_t PNG_HEADER[8] = {0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A};
-        if (std::memcmp(bytes.data(), PNG_HEADER, 8) != 0)
-            throw std::runtime_error("Invalid PNG header");
-
-        const uint8_t *p = bytes.data() + 8;
-        const uint8_t *end = bytes.data() + bytes.size();
-
-        while (p + 12 <= end)
-        { // length(4) + type(4) + crc(4)
-            uint32_t length = readUInt32BE(p);
-            p += 4;
-            if (p + 4 > end)
-                break;
-
-            std::string_view typeSv(reinterpret_cast<const char *>(p), 4);
-            p += 4;
-
-            if (p + length + 4 > end)
-                throw std::runtime_error("Corrupted PNG: chunk exceeds file size");
-
-            std::string_view chunkSv(reinterpret_cast<const char *>(p), length);
-            p += length + 4; // skip CRC
-
-            if (typeSv == "tEXt")
-            {
-                size_t nullPos = chunkSv.find('\0');
-                if (nullPos == std::string_view::npos)
-                    throw std::runtime_error("Malformed tEXt chunk: missing null separator");
-
-                std::string_view valueSv = chunkSv.substr(nullPos + 1);
-                std::vector<uint8_t> tmp;
-
-                if (!base64DecodeToBytes(valueSv, tmp))
-                    throw std::runtime_error("Failed to decode tEXt chunk value");
-            
-                while (!tmp.empty() && !isValidUtf8(tmp.data(), tmp.size()))
-                    tmp.pop_back();
-            
-                std::string result(reinterpret_cast<const char *>(tmp.data()), tmp.size());
-                return result;
-            }
-        }
-
-        throw std::runtime_error("tEXt chunk not found");
-    }
-
-   std::string HybridPngUtils::replacePngChunk(const std::string &base64Png,
-                                                    const std::string &newText)
-    {
-        // ---- Decode PNG ----
-        std::vector<uint8_t> bytes;
-        if (!base64DecodeToBytes(base64Png, bytes))
-            throw std::runtime_error("Invalid Base64 PNG data");
-        if (bytes.size() < 8)
-            throw std::runtime_error("Invalid PNG: too short");
-
-        static const uint8_t PNG_HEADER[8] = {0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A};
-        if (std::memcmp(bytes.data(), PNG_HEADER, 8) != 0)
-            throw std::runtime_error("Invalid PNG header");
-
-        // ---- Encode new UTF-8 text as Base64 ----
-        std::vector<uint8_t> utf8bytes(newText.begin(), newText.end());
-        std::string newTextB64;
-        if (!base64EncodeFromBytes(utf8bytes, newTextB64))
-            throw std::runtime_error("Failed to base64 encode new text");
-
-        // ---- Iterate chunks ----
-        const uint8_t *ptr = bytes.data() + 8;
-        const uint8_t *end = bytes.data() + bytes.size();
-        std::vector<uint8_t> newBytes;
-        newBytes.insert(newBytes.end(), bytes.begin(), bytes.begin() + 8); // keep PNG header
-
-        bool replaced = false;
-        bool inserted = false;
-
-        while (ptr + 12 <= end)
-        {
-            uint32_t length = readUInt32BE(ptr);
-            const uint8_t *chunkStart = ptr;
-            ptr += 4;
-            if (ptr + 4 > end)
-                throw std::runtime_error("Invalid PNG chunk header");
-
-            const char *type = reinterpret_cast<const char *>(ptr);
-            ptr += 4;
-            const uint8_t *dataStart = ptr;
-            ptr += length;
-            if (ptr + 4 > end)
-                throw std::runtime_error("Invalid PNG chunk length");
-            ptr += 4;
-
-            // ---- Replace existing tEXt ----
-            if (!replaced && std::strncmp(type, "tEXt", 4) == 0)
-            {
-                // Copy up to start of this chunk
-                size_t prefixLen = chunkStart - bytes.data();
-                newBytes.resize(prefixLen);
-
-                // Read keyword up to null
-                size_t nullPos = 0;
-                while (nullPos < length && dataStart[nullPos] != 0)
-                    ++nullPos;
-                if (nullPos >= length)
-                    throw std::runtime_error("Malformed tEXt chunk");
-
-                std::string keyword(reinterpret_cast<const char *>(dataStart), nullPos + 1);
-                std::string newChunkData = keyword + newTextB64;
-                uint32_t newLen = static_cast<uint32_t>(newChunkData.size());
-
-                // Write new chunk
-                newBytes.push_back((newLen >> 24) & 0xFF);
-                newBytes.push_back((newLen >> 16) & 0xFF);
-                newBytes.push_back((newLen >> 8) & 0xFF);
-                newBytes.push_back((newLen)&0xFF);
-                newBytes.insert(newBytes.end(), {'t', 'E', 'X', 't'});
-                newBytes.insert(newBytes.end(), newChunkData.begin(), newChunkData.end());
-
-                uint32_t newCrc = crc32(0L, Z_NULL, 0);
-                newCrc = crc32(newCrc, reinterpret_cast<const Bytef *>("tEXt"), 4);
-                newCrc = crc32(newCrc, reinterpret_cast<const Bytef *>(newChunkData.data()), newChunkData.size());
-                newBytes.push_back((newCrc >> 24) & 0xFF);
-                newBytes.push_back((newCrc >> 16) & 0xFF);
-                newBytes.push_back((newCrc >> 8) & 0xFF);
-                newBytes.push_back((newCrc)&0xFF);
-
-                replaced = true;
-                continue; // skip copying old chunk
-            }
-
-            // ---- If no tEXt found, insert before IEND ----
-            if (!inserted && std::strncmp(type, "IEND", 4) == 0 && !replaced)
-            {
-                std::string keyword = "Comment";
-                std::string newChunkData = keyword + '\0' + newTextB64;
-                uint32_t newLen = static_cast<uint32_t>(newChunkData.size());
-
-                newBytes.push_back((newLen >> 24) & 0xFF);
-                newBytes.push_back((newLen >> 16) & 0xFF);
-                newBytes.push_back((newLen >> 8) & 0xFF);
-                newBytes.push_back((newLen)&0xFF);
-                newBytes.insert(newBytes.end(), {'t', 'E', 'X', 't'});
-                newBytes.insert(newBytes.end(), newChunkData.begin(), newChunkData.end());
-
-                uint32_t newCrc = crc32(0L, Z_NULL, 0);
-                newCrc = crc32(newCrc, reinterpret_cast<const Bytef *>("tEXt"), 4);
-                newCrc = crc32(newCrc, reinterpret_cast<const Bytef *>(newChunkData.data()), newChunkData.size());
-                newBytes.push_back((newCrc >> 24) & 0xFF);
-                newBytes.push_back((newCrc >> 16) & 0xFF);
-                newBytes.push_back((newCrc >> 8) & 0xFF);
-                newBytes.push_back((newCrc)&0xFF);
-
-                inserted = true;
-            }
-
-            // ---- Copy original chunk ----
-            newBytes.insert(newBytes.end(), chunkStart, ptr);
-        }
-
-        if (!replaced && !inserted)
-            throw std::runtime_error("No IEND chunk found or failed to insert");
-
-        // ---- Re-encode as Base64 ----
-        std::string resultB64;
-        if (!base64EncodeFromBytes(newBytes, resultB64))
-            throw std::runtime_error("Failed to base64 encode result PNG");
-
-        return resultB64;
-    }
-} // namespace margelo::nitro::pngutils
+} // namespace

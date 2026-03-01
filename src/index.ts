@@ -8,8 +8,11 @@ const PngUtils = NitroModules.createHybridObject<PngUtilsSpec>('PngUtils')
  * @param pngData base64 encoded PNG data
  * @returns contents of tEXt chunk
  */
-export function extractPngTextChunk(pngData: string) {
-  return PngUtils.extractPngChunk(pngData)
+export function extractPngTextChunk(
+  pngData: string,
+  decodeOutput: boolean = true
+) {
+  return PngUtils.extractPngChunk(pngData, decodeOutput)
 }
 
 /**
@@ -18,6 +21,10 @@ export function extractPngTextChunk(pngData: string) {
  * @param newData new tEXt chunk data
  * @returns base64 encoded PNG with tEXt chunk replaced
  */
-export function replacePngTextChunk(fileData: string, newData: string) {
-  return PngUtils.replacePngChunk(fileData, newData)
+export function replacePngTextChunk(
+  fileData: string,
+  newData: string,
+  encodeInput: boolean = true
+) {
+  return PngUtils.replacePngChunk(fileData, newData, encodeInput)
 }

@@ -26,15 +26,47 @@ function App(): React.JSX.Element {
       'base64'
     )
     const now = performance.now()
-    //let old = replacePngTextChunk(fileData, JSON.stringify({ test: 'TEST' }))
     const pngtext = extractPngTextChunk(fileData)
+    const last = pngtext.lastIndexOf('}')
+
+    const newpngtext = pngtext.slice(0, last + 1)
+
     const after = performance.now() - now
     setTime(after)
     try {
-      console.log(JSON.parse(pngtext.trim()))
-      setText(JSON.stringify(JSON.parse(pngtext)))
+      console.log(JSON.parse(newpngtext))
+      setText(JSON.stringify(JSON.parse(newpngtext)))
     } catch (e) {
+      console.log(pngtext)
       setText(e + pngtext)
+    }
+  }
+
+  const handleReadAndReplace = async () => {
+    const [result] = await pick({
+      allowMultiSelection: false,
+    })
+    if (!result) return
+    const [file] = await keepLocalCopy({
+      files: [{ fileName: 'output.png', uri: result.uri }],
+      destination: 'documentDirectory',
+    })
+    if (file.status === 'error') return
+    const fileData = await FileSystem.readFile(
+      file.localUri.replace('file://', ''),
+      'base64'
+    )
+    const newimage = replacePngTextChunk(
+      fileData,
+      JSON.stringify({ example: 'DATA' })
+    )
+
+    try {
+      const newpngtext = extractPngTextChunk(newimage)
+      console.log(JSON.parse(newpngtext))
+      setText(JSON.stringify(JSON.parse(newpngtext)))
+    } catch (e) {
+      setText('error' + e)
     }
   }
 
@@ -46,7 +78,9 @@ function App(): React.JSX.Element {
       <TouchableOpacity onPress={handlePick}>
         <Text style={styles.button}>Pick</Text>
       </TouchableOpacity>
-
+      <TouchableOpacity onPress={handleReadAndReplace}>
+        <Text style={styles.button}>Read and Replace</Text>
+      </TouchableOpacity>
       <Text style={styles.text}>{time ?? 'None'}</Text>
     </SafeAreaView>
   )
@@ -54,7 +88,7 @@ function App(): React.JSX.Element {
 
 const styles = StyleSheet.create({
   button: {
-    fontSize: 40,
+    fontSize: 24,
     color: 'orange',
   },
 

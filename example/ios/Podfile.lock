@@ -37,7 +37,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - PngUtils (0.1.0):
+  - PngUtils (0.1.1):
     - boost
     - DoubleConversion
     - fast_float
@@ -2783,7 +2783,7 @@ SPEC CHECKSUMS:
   glog: 5683914934d5b6e4240e497e0f4a3b42d1854183
   hermes-engine: 273e30e7fb618279934b0b95ffab60ecedb7acf5
   NitroModules: 5f474732a91ef6a48e7788fb73b355bcb52999ee
-  PngUtils: ae37903c82b934f5bef1878b636acf7b70f019d0
+  PngUtils: 09b7acf5c956e284c6a2cd1da3c59039c11873ba
   RCT-Folly: 59ec0ac1f2f39672a0c6e6cecdd39383b764646f
   RCTDeprecation: f17e2ebc07876ca9ab8eb6e4b0a4e4647497ae3a
   RCTRequired: e2c574c1b45231f7efb0834936bd609d75072b63
