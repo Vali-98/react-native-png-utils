@@ -1,6 +1,6 @@
 {
   "name": "@vali98/react-native-png-utils",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "react-native-png-utils provides utilities for PNG tEXt chunks",
   "main": "./lib/commonjs/index.js",
   "module": "./lib/module/index.js",
