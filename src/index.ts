@@ -20,7 +20,6 @@ export function extractPngTextChunk(
   pngData: string,
   options: ExtractPngChunksOptions = { decodeBase64: true }
 ) {
-  console.log(options)
   return PngUtils.extractPngChunks(pngData, options)
 }
 
