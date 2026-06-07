@@ -55,15 +55,14 @@ function App(): React.JSX.Element {
       'base64'
     )
     try {
-      const imageChunks = extractPngTextChunk(fileData)
       const newimage = replacePngTextChunk(fileData, [
         { data: 'Hello', keyword: 'hi' },
       ])
 
       const newpngtext = extractPngTextChunk(newimage)
       const result2 = newpngtext
-      console.log(JSON.stringify(result2[0]))
-      setText(JSON.stringify(JSON.stringify(result2[0])))
+      console.log(JSON.stringify(result2))
+      setText(JSON.stringify(JSON.stringify(result2)))
     } catch (e) {
       setText('error' + e)
     }

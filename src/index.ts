@@ -11,6 +11,9 @@ const PngUtils = NitroModules.createHybridObject<PngUtilsSpec>('PngUtils')
 /**
  *
  * @param pngData base64 encoded PNG data
+ * @param options extract options
+ *  - keywords - filters tEXt chunk keywords, returns all chunks if not specified
+ *  - decodeBase64 - whether to run b64 decode on extracted chunks, default true
  * @returns contents of tEXt chunk
  */
 export function extractPngTextChunk(
@@ -24,7 +27,9 @@ export function extractPngTextChunk(
 /**
  *
  * @param fileData base64 encoded PNG data
- * @param chunks array of tEXt chunk data to insert {keyword, data}
+ * @param chunks tEXt chunks to insert {keyword, data}
+ * @param options replace options
+ *  - removeKeywords - deletes tEXt chunks with specified keywords
  * @returns base64 encoded PNG with tEXt chunk replaced
  */
 export function replacePngTextChunk(

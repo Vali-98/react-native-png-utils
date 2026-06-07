@@ -23,9 +23,14 @@ import {
   replacePngTextChunk,
 } from '@vali98/react-native-png-utils'
 
+const base64EncodedPNGData = 'sOmEb64Image...'
+
 const textChunk = extractPngTextChunk(base64EncodedPNGData)
 
-const newPNGData = replacePngTextChunk(base64EncodedPNGData, newUTF8tEXtData)
+const newPNGData = replacePngTextChunk(base64EncodedPNGData, {
+  data: newUTF8tEXtData,
+  keyword: 'some-keyword',
+})
 ```
 
 ## Credits
