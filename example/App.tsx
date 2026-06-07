@@ -27,18 +27,16 @@ function App(): React.JSX.Element {
     )
     const now = performance.now()
     const pngtext = extractPngTextChunk(fileData)
-    const last = pngtext.lastIndexOf('}')
-
-    const newpngtext = pngtext.slice(0, last + 1)
 
     const after = performance.now() - now
     setTime(after)
     try {
-      console.log(JSON.parse(newpngtext))
-      setText(JSON.stringify(JSON.parse(newpngtext)))
+      const results = JSON.stringify(pngtext)
+      console.log(results)
+      setText(results)
     } catch (e) {
       console.log(pngtext)
-      setText(e + pngtext)
+      console.log(e)
     }
   }
 
@@ -56,15 +54,16 @@ function App(): React.JSX.Element {
       file.localUri.replace('file://', ''),
       'base64'
     )
-    const newimage = replacePngTextChunk(
-      fileData,
-      JSON.stringify({ example: 'DATA' })
-    )
-
     try {
+      const imageChunks = extractPngTextChunk(fileData)
+      const newimage = replacePngTextChunk(fileData, [
+        { data: 'Hello', keyword: 'hi' },
+      ])
+
       const newpngtext = extractPngTextChunk(newimage)
-      console.log(JSON.parse(newpngtext))
-      setText(JSON.stringify(JSON.parse(newpngtext)))
+      const result2 = newpngtext
+      console.log(JSON.stringify(result2[0]))
+      setText(JSON.stringify(JSON.stringify(result2[0])))
     } catch (e) {
       setText('error' + e)
     }

@@ -1,5 +1,10 @@
 import { NitroModules } from 'react-native-nitro-modules'
-import type { PngUtils as PngUtilsSpec } from './specs/png-utils.nitro'
+import type {
+  ExtractPngChunksOptions,
+  PngUtils as PngUtilsSpec,
+  ReplacePngChunksOptions,
+  TextChunk,
+} from './specs/png-utils.nitro'
 
 const PngUtils = NitroModules.createHybridObject<PngUtilsSpec>('PngUtils')
 
@@ -10,21 +15,26 @@ const PngUtils = NitroModules.createHybridObject<PngUtilsSpec>('PngUtils')
  */
 export function extractPngTextChunk(
   pngData: string,
-  decodeOutput: boolean = true
+  options: ExtractPngChunksOptions = { decodeBase64: true }
 ) {
-  return PngUtils.extractPngChunk(pngData, decodeOutput)
+  console.log(options)
+  return PngUtils.extractPngChunks(pngData, options)
 }
 
 /**
  *
  * @param fileData base64 encoded PNG data
- * @param newData new tEXt chunk data
+ * @param chunks array of tEXt chunk data to insert {keyword, data}
  * @returns base64 encoded PNG with tEXt chunk replaced
  */
 export function replacePngTextChunk(
   fileData: string,
-  newData: string,
-  encodeInput: boolean = true
+  newData: TextChunk[] | TextChunk,
+  options: ReplacePngChunksOptions = {}
 ) {
-  return PngUtils.replacePngChunk(fileData, newData, encodeInput)
+  return PngUtils.replacePngChunks(
+    fileData,
+    Array.isArray(newData) ? newData : [newData],
+    options
+  )
 }

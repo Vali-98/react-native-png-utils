@@ -28,24 +28,6 @@ const textChunk = extractPngTextChunk(base64EncodedPNGData)
 const newPNGData = replacePngTextChunk(base64EncodedPNGData, newUTF8tEXtData)
 ```
 
-## Benchmarks
-
-Here are some comparisons for the performance of this library vs a naive JS implementation used in ChatterUI:
-
-#### Extracting tEXT Chunk Performance
-
-| Implementation | Time Taken (5k tokens) |
-| :------------- | :--------------------- |
-| **JS**         | $\sim 10\text{ms}$     |
-| **png-utils**  | $\sim 0.1\text{ms}$    |
-
-#### Replacing tEXT Chunk Performance
-
-| Implementation | Time Taken (5k tokens) |
-| :------------- | :--------------------- |
-| **JS**         | $\sim 30\text{ms}$     |
-| **png-utils**  | $\sim 1\text{ms}$      |
-
 ## Credits
 
 - Bootstrapped with [create-nitro-module](https://github.com/patrickkabwe/create-nitro-module).

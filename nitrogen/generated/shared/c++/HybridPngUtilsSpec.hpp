@@ -13,9 +13,22 @@
 #error NitroModules cannot be found! Are you sure you installed NitroModules properly?
 #endif
 
-
+// Forward declaration of `TextChunk` to properly resolve imports.
+namespace margelo::nitro::pngutils { struct TextChunk; }
+// Forward declaration of `ReplacePngChunksOptions` to properly resolve imports.
+namespace margelo::nitro::pngutils { struct ReplacePngChunksOptions; }
+// Forward declaration of `TextChunkResult` to properly resolve imports.
+namespace margelo::nitro::pngutils { struct TextChunkResult; }
+// Forward declaration of `ExtractPngChunksOptions` to properly resolve imports.
+namespace margelo::nitro::pngutils { struct ExtractPngChunksOptions; }
 
 #include <string>
+#include "TextChunk.hpp"
+#include <vector>
+#include "ReplacePngChunksOptions.hpp"
+#include <optional>
+#include "TextChunkResult.hpp"
+#include "ExtractPngChunksOptions.hpp"
 
 namespace margelo::nitro::pngutils {
 
@@ -48,8 +61,8 @@ namespace margelo::nitro::pngutils {
 
     public:
       // Methods
-      virtual std::string extractPngChunk(const std::string& pngData, bool decodeOutput) = 0;
-      virtual std::string replacePngChunk(const std::string& pngData, const std::string& newData, bool encodeInput) = 0;
+      virtual std::string replacePngChunks(const std::string& imageBase64, const std::vector<TextChunk>& chunks, const std::optional<ReplacePngChunksOptions>& options) = 0;
+      virtual std::vector<TextChunkResult> extractPngChunks(const std::string& imageBase64, const std::optional<ExtractPngChunksOptions>& options) = 0;
 
     protected:
       // Hybrid Setup

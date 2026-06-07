@@ -9,7 +9,7 @@ namespace margelo::nitro::pngutils
     public:
         HybridPngUtils() : HybridObject(TAG), HybridPngUtilsSpec() {}
 
-        std::string extractPngChunk(const std::string &pngBase64, const bool decodeOutput) override;
-        std::string replacePngChunk(const std::string &pngData, const std::string &newData, bool encodeInput) override;
+            virtual std::string replacePngChunks(const std::string& imageBase64, const std::vector<TextChunk>& chunks, const std::optional<ReplacePngChunksOptions>& options) override;
+            virtual std::vector<TextChunkResult> extractPngChunks(const std::string& imageBase64, const std::optional<ExtractPngChunksOptions>& options) override;
     };
 } // namespace margelo::nitro::pngutils
