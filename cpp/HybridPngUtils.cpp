@@ -196,10 +196,17 @@ static std::vector<PngChunk> parseChunks(const std::vector<uint8_t>& png) {
 
 static std::vector<uint8_t> buildPNG(const std::vector<PngChunk>& chunks) {
     std::vector<uint8_t> out;
+    out.reserve(1024 * 1024);
 
     out.insert(out.end(), PNG_SIG, PNG_SIG + 8);
 
+    const char* IEND_TYPE = "IEND";
+
     for (const auto& c : chunks) {
+        if (c.type == "IEND") {
+            continue;
+        }
+
         writeBE32(out, (uint32_t)c.data.size());
 
         out.insert(out.end(), c.type.begin(), c.type.end());
@@ -208,6 +215,16 @@ static std::vector<uint8_t> buildPNG(const std::vector<PngChunk>& chunks) {
         uint32_t crc = crc32(0L, Z_NULL, 0);
         crc = crc32(crc, (const Bytef*)c.type.data(), 4);
         crc = crc32(crc, c.data.data(), c.data.size());
+
+        writeBE32(out, crc);
+    }
+
+    {
+        writeBE32(out, 0);
+        out.insert(out.end(), IEND_TYPE, IEND_TYPE + 4);
+
+        uint32_t crc = crc32(0L, Z_NULL, 0);
+        crc = crc32(crc, (const Bytef*)IEND_TYPE, 4);
 
         writeBE32(out, crc);
     }
