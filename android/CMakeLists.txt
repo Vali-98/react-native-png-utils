@@ -17,6 +17,12 @@ add_library(${PACKAGE_NAME} SHARED
     ../cpp/HybridPngUtils.cpp
 )
 
+# Validate every base64 block, including metadata that may be plain text.
+target_compile_definitions(${PACKAGE_NAME} PRIVATE B64CHECK UA_MEMCPY)
+# Turbo-Base64 is an implementation detail. Hidden C symbols let the linker
+# discard unused scalar entry points/tables and bind retained calls locally.
+set_target_properties(${PACKAGE_NAME} PROPERTIES C_VISIBILITY_PRESET hidden)
+
 # Conditional NEON setup (only for arm64-v8a)
 if(ANDROID_ABI STREQUAL "arm64-v8a")
     target_compile_definitions(${PACKAGE_NAME} PRIVATE PNGUTIL_ENABLE_NEON)

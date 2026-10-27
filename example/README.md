@@ -1,3 +1,30 @@
+# PNG benchmark screen
+
+The example app has two menus:
+
+- **Manual images:** choose a PNG, then run extraction and metadata replacement
+  against the loaded image. File reads are excluded from timings. Release the
+  loaded image when finished.
+- **Random PNG:** generate a valid PNG with deterministic random RGB pixels at
+  approximately 1, 2, 3, 8, or 16 MiB. PNG generation is excluded from timings.
+  This uses uncompressed DEFLATE to control file size; it is not a pixel decoder
+  or PNG compression benchmark.
+
+Choose 5, 10, or 25 measured iterations. One warm-up and a metadata round-trip
+check run first. Results show median, p95, and mean elapsed time for extraction
+and replacement, including the JS/native boundary. Each iteration uses the same
+original image. Only eight result summaries are retained, with selectable extracted-text
+previews capped at 16,384 characters and 32 chunks per result. Truncation is
+labeled. Preview extraction runs outside timed calls, and replacement images
+are not stored in state. The UI yields between call pairs; individual
+native calls remain synchronous.
+
+Use a release build for performance comparisons. RAM estimates on screen are
+buffer-content estimates, not measurements. Profile actual process RAM with the
+platform's native memory profiler; JS sampling cannot observe a transient peak
+inside a synchronous native call. Reading/generating a fixture and JS garbage
+collection can also affect process high-water memory.
+
 This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
 
 # Getting Started

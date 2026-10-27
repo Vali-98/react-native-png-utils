@@ -12,6 +12,7 @@ Pod::Spec.new do |s|
 
   s.platforms    = { :ios => min_ios_version_supported, :visionos => 1.0 }
   s.source       = { :git => "https://github.com/vali98/react-native-png-utils.git", :tag => "#{s.version}" }
+  s.libraries    = 'z'
 
   s.source_files = [
     # Implementation (Swift)
@@ -23,8 +24,8 @@ Pod::Spec.new do |s|
   ]
   s.pod_target_xcconfig = {
     # O3 optimizations make stuff fast
-    'OTHER_CPLUSPLUSFLAGS' => '$(inherited) -O3 -DPNGUTIL_ENABLE_NEON', 
-    'OTHER_CFLAGS' => '$(inherited) -O3 -DPNGUTIL_ENABLE_NEON',
+    'OTHER_CPLUSPLUSFLAGS' => '$(inherited) -O3 -DPNGUTIL_ENABLE_NEON -DB64CHECK -DUA_MEMCPY',
+    'OTHER_CFLAGS' => '$(inherited) -O3 -DPNGUTIL_ENABLE_NEON -DB64CHECK -DUA_MEMCPY',
   }
 
   load 'nitrogen/generated/ios/PngUtils+autolinking.rb'

@@ -75,6 +75,7 @@ static const unsigned char lut[] = {
   stou32(op+_i_*12+6, _q0); stou32(op+_i_*12+9, _q1);\
 } 
 
+#undef DS
 #define DS(_i_)    DS_(_i_,;,;)
 #define DSC64(_i_) DS_(_i_,CHECK0(cu |= _o0),CHECK1(cu |= _q0)) 
  
@@ -300,8 +301,13 @@ size_t tb64declen(const unsigned char *__restrict in, size_t inlen) {
 }
   #endif
 
-#define DX(_i_)    DX_(_i_,;,;)
-#define DXC64(_i_) DX_(_i_,CHECK0(cu |= _o0),CHECK1(cu |= _q0)) 
+#undef DX
+#define DXC64(_i_) DX_(_i_,CHECK0(cu |= _o0 | _o1),CHECK1(cu |= _q0 | _q1))
+#ifdef B64CHECK
+#define DX(_i_) DXC64(_i_)
+#else
+#define DX(_i_) DX_(_i_,;,;)
+#endif
 
 size_t tb64xdec(const unsigned char *__restrict in, size_t inlen, unsigned char *__restrict out) {
   const unsigned char *ip = in;

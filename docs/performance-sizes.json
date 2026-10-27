@@ -1,0 +1,30 @@
+{
+  "arm64-v8a": {
+    "before": 327000,
+    "after": 254624,
+    "unstripped_after": 2438968,
+    "reduction_percent": 22.13,
+    "sha256": "b23459887dde6df3312ab2394b882bf2f59d1b263d0780938a63f1640b7c2159"
+  },
+  "armeabi-v7a": {
+    "before": 211244,
+    "after": 159544,
+    "unstripped_after": 2052076,
+    "reduction_percent": 24.47,
+    "sha256": "3a01039fc25c5a5cf50a71191fa084755ef35bcbfbe5359a898a376f5fb1b88d"
+  },
+  "x86": {
+    "before": 350528,
+    "after": 259348,
+    "unstripped_after": 2156832,
+    "reduction_percent": 26.01,
+    "sha256": "19c82fb18ca9f728ed5dea33765e6a5af19f9c318350346ec563c5f8fc97677c"
+  },
+  "x86_64": {
+    "before": 345952,
+    "after": 260848,
+    "unstripped_after": 2431416,
+    "reduction_percent": 24.6,
+    "sha256": "de15f429f2996570f8b261fc01643d9b30e5f81e99ef48cb81a56e325878124b"
+  }
+}
