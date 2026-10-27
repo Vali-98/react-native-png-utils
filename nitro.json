@@ -15,6 +15,9 @@
   "autolinking": {
     "PngUtils": {
       "cpp": "HybridPngUtils"
+    },
+    "AudioUtils": {
+      "cpp": "HybridAudioUtils"
     }
   },
   "ignorePaths": [

@@ -16,6 +16,7 @@
 #include <NitroModules/HybridObjectRegistry.hpp>
 
 #include "HybridPngUtils.hpp"
+#include "HybridAudioUtils.hpp"
 
 namespace margelo::nitro::pngutils {
 
@@ -36,6 +37,15 @@ int initialize(JavaVM* vm) {
                       "The HybridObject \"HybridPngUtils\" is not default-constructible! "
                       "Create a public constructor that takes zero arguments to be able to autolink this HybridObject.");
         return std::make_shared<HybridPngUtils>();
+      }
+    );
+    HybridObjectRegistry::registerHybridObjectConstructor(
+      "AudioUtils",
+      []() -> std::shared_ptr<HybridObject> {
+        static_assert(std::is_default_constructible_v<HybridAudioUtils>,
+                      "The HybridObject \"HybridAudioUtils\" is not default-constructible! "
+                      "Create a public constructor that takes zero arguments to be able to autolink this HybridObject.");
+        return std::make_shared<HybridAudioUtils>();
       }
     );
   });

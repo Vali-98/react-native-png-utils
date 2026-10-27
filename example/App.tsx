@@ -20,6 +20,7 @@ import {
 import { FileSystem } from 'react-native-file-access';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { base64Bytes, mib, pause, randomPNG, summary } from './benchmark';
+import AudioScreen from './AudioScreen';
 
 type Source = { name: string; base64: string; bytes: number };
 type Result = {
@@ -110,7 +111,7 @@ function verify(input: string) {
   if (!found.some(chunk => chunk.data === marker.data))
     throw new Error('Metadata round-trip verification failed');
 }
-function App(): React.JSX.Element {
+function PngBenchmarks(): React.JSX.Element {
   const [menu, setMenu] = useState<'manual' | 'random'>('manual');
   const [selectedName, setSelectedName] = useState('No image loaded');
   const [size, setSize] = useState(2);
@@ -232,7 +233,7 @@ function App(): React.JSX.Element {
     }
   };
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>PNG benchmarks</Text>
         <Text style={styles.note}>
@@ -397,7 +398,7 @@ function App(): React.JSX.Element {
           </View>
         ))}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 const styles = StyleSheet.create({
@@ -433,4 +434,29 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.4 },
   buttonText: { color: '#e1edff', fontSize: 14, fontWeight: '600' },
 });
+function App(): React.JSX.Element {
+  const [screen, setScreen] = useState<'png' | 'audio'>('png');
+  return (
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <View style={[styles.row, { paddingHorizontal: 20, paddingTop: 8 }]}>
+        <Button
+          title="PNG benchmarks"
+          selected={screen === 'png'}
+          onPress={() => setScreen('png')}
+        />
+        <Button
+          title="Audio → WAV"
+          selected={screen === 'audio'}
+          onPress={() => setScreen('audio')}
+        />
+      </View>
+      <View style={{ flex: 1, display: screen === 'png' ? 'flex' : 'none' }}>
+        <PngBenchmarks />
+      </View>
+      <View style={{ flex: 1, display: screen === 'audio' ? 'flex' : 'none' }}>
+        <AudioScreen />
+      </View>
+    </SafeAreaView>
+  );
+}
 export default App;

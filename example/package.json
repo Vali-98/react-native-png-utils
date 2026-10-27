@@ -8,7 +8,12 @@
     "lint": "eslint .",
     "start": "react-native start --reset-cache",
     "test": "jest",
-    "pod": "bundle install && bundle exec pod install --project-directory=ios"
+    "pod": "bundle install && bundle exec pod install --project-directory=ios",
+    "fixtures": "node scripts/audio-fixtures.cjs",
+    "prestart": "npm run fixtures",
+    "preandroid": "npm run fixtures",
+    "preios": "npm run fixtures",
+    "postinstall": "npm run fixtures"
   },
   "dependencies": {
     "@react-native-documents/picker": "^10.1.7",

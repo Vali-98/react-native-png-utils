@@ -15,6 +15,9 @@ add_library(${PACKAGE_NAME} SHARED
     ../cpp/turbob64/turbob64d.c
     ../cpp/HybridPngUtils.hpp
     ../cpp/HybridPngUtils.cpp
+    ../cpp/HybridAudioUtils.cpp
+    ../cpp/audio/WavWriter.cpp
+    ../cpp/audio/AudioDecoder.android.cpp
 )
 
 # Validate every base64 block, including metadata that may be plain text.
@@ -45,5 +48,6 @@ target_link_libraries(
         ${PACKAGE_NAME}
         ${LOG_LIB}
         ${Z_LIB}
+        mediandk
         android                                   # <-- Android core
 )

@@ -13,6 +13,7 @@ Pod::Spec.new do |s|
   s.platforms    = { :ios => min_ios_version_supported, :visionos => 1.0 }
   s.source       = { :git => "https://github.com/vali98/react-native-png-utils.git", :tag => "#{s.version}" }
   s.libraries    = 'z'
+  s.frameworks   = ['AudioToolbox', 'CoreFoundation']
 
   s.source_files = [
     # Implementation (Swift)

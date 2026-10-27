@@ -33,6 +33,7 @@ target_sources(
   # Autolinking Setup
   ../nitrogen/generated/android/PngUtilsOnLoad.cpp
   # Shared Nitrogen C++ sources
+  ../nitrogen/generated/shared/c++/HybridAudioUtilsSpec.cpp
   ../nitrogen/generated/shared/c++/HybridPngUtilsSpec.cpp
   # Android-specific Nitrogen C++ sources
   

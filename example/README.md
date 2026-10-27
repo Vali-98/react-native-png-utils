@@ -1,124 +1,40 @@
-# PNG benchmark screen
+# Example app
 
-The example app has two menus:
-
-- **Manual images:** choose a PNG, then run extraction and metadata replacement
-  against the loaded image. File reads are excluded from timings. Release the
-  loaded image when finished.
-- **Random PNG:** generate a valid PNG with deterministic random RGB pixels at
-  approximately 1, 2, 3, 8, or 16 MiB. PNG generation is excluded from timings.
-  This uses uncompressed DEFLATE to control file size; it is not a pixel decoder
-  or PNG compression benchmark.
-
-Choose 5, 10, or 25 measured iterations. One warm-up and a metadata round-trip
-check run first. Results show median, p95, and mean elapsed time for extraction
-and replacement, including the JS/native boundary. Each iteration uses the same
-original image. Only eight result summaries are retained, with selectable extracted-text
-previews capped at 16,384 characters and 32 chunks per result. Truncation is
-labeled. Preview extraction runs outside timed calls, and replacement images
-are not stored in state. The UI yields between call pairs; individual
-native calls remain synchronous.
-
-Use a release build for performance comparisons. RAM estimates on screen are
-buffer-content estimates, not measurements. Profile actual process RAM with the
-platform's native memory profiler; JS sampling cannot observe a transient peak
-inside a synchronous native call. Reading/generating a fixture and JS garbage
-collection can also affect process high-water memory.
-
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
-
-# Getting Started
-
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
-
-## Step 1: Start Metro
-
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
-
-To start the Metro dev server, run the following command from the root of your React Native project:
+Install the workspace dependencies, then run from this directory:
 
 ```sh
-# Using npm
+npm run fixtures
 npm start
-
-# OR using Yarn
-yarn start
-```
-
-## Step 2: Build and run your app
-
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
-
-### Android
-
-```sh
-# Using npm
+# In another terminal:
 npm run android
-
-# OR using Yarn
-yarn android
+# or npm run ios
 ```
 
-### iOS
+The start/android/ios lifecycle scripts regenerate `audioFixtures.ts` from the
+small native test inputs. That generated base64 embedding is ignored by Git.
+No media files are downloaded. Rebuild the app for native changes; iOS also needs
+`pod install` after adding Nitro objects or native files.
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+## Audio → WAV
 
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+Pick any local file; the picker does not filter extensions or MIME types. The
+file is copied to app cache and passed as a local file URI. The native decoder
+determines whether it contains supported audio. Generated fixtures cover AAC
+M4A, MP3, MP4 and WebM/Opus; the current Apple backend rejects WebM/Opus.
 
-```sh
-bundle install
-```
+Conversion runs on a worker and shows elapsed time, format, duration and the
+output URI. The screen owns `result.wav` in app cache and replaces it for each
+conversion. Use the clear button to remove its current cached input and output.
 
-Then, and every time you update your native dependencies, run:
+## PNG benchmarks
 
-```sh
-bundle exec pod install
-```
+Use Manual images to load a PNG, or Random PNG to generate a valid random-pixel
+PNG at 1, 2, 3, 8 or 16 MiB. Generation and file reading are outside measured calls.
+Results show median, p95 and mean for extraction/replacement after one warm-up.
+Use a release build for comparisons. Calls are synchronous with yields between
+iterations; timings include the JS/native boundary.
 
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
-
-```sh
-# Using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
-```
-
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
-
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
-
-## Step 3: Modify your app
-
-Now that you have successfully run the app, let's make changes!
-
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
-
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
-
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+Only eight results are retained. Extracted text previews are selectable and
+limited to 16,384 characters across 32 chunks per result. Replacement images are
+not retained. Displayed RAM estimates describe buffer content; measure real
+process peaks with the native platform profiler.
